@@ -55,6 +55,15 @@ class Agent(nn.Module):
     def lr(self,lr):
         self.optimizer.param_groups[0]["lr"] = lr
 
+    def sortout_memory(self):
+        obs = self.obs.roll(-self.current_buffer_pos-1, 0)
+        actions = self.actions.roll(-self.current_buffer_pos-1, 0)
+        logprobs = self.logprobs.roll(-self.current_buffer_pos-1, 0)
+        rewards = self.rewards.roll(-self.current_buffer_pos-1, 0)
+        dones = self.dones.roll(-self.current_buffer_pos-1, 0)
+        values = self.values.roll(-self.current_buffer_pos-1, 0)
+        return obs,actions,logprobs,rewards,dones,values
+
     def get_value(self, x):
         return self.critic(x)
 
@@ -107,41 +116,37 @@ class Agent(nn.Module):
     def reward(self, last_reward):
         self.rewards[self.current_buffer_pos] = last_reward
 
-    def update(self, next_obs, next_done, gae_lambda = 0.95, gamma=0.99, minibatch_size = 32,
-               update_epochs = 10, clip_coef = 0.2, norm_adv = True, clip_vloss = True,
+    def update(self, update_epochs = 10, minibatch_size = 32, gae_lambda = 0.95, gamma=0.99, 
+               clip_coef = 0.2, norm_adv = True, clip_vloss = True,
                ent_coef = 0.0, vf_coef = 0.5, max_grad_norm = 0.5):
+        obs,actions,logprobs,rewards,dones,values = self.sortout_memory()
         # bootstrap value if not done, GAE
         with torch.no_grad():
-            next_value = self.get_value(next_obs).reshape(1, -1)
-            advantages = torch.zeros_like(self.rewards, device= self.rewards.device)
+            advantages = torch.zeros_like(rewards, device= rewards.device)
             lastgaelam = 0
-            for t in np.roll(np.arange(self.mem_size)[::-1],self.current_buffer_pos+1):
-                if t == self.current_buffer_pos:
-                    nextnonterminal = 1.0 - next_done
-                    nextvalues = next_value
-                else:
-                    nextnonterminal = 1.0 - self.dones[t + 1]
-                    nextvalues = self.values[t + 1]
-                delta = self.rewards[t] + gamma * nextvalues * nextnonterminal - self.values[t]
+            for t in reversed(range(self.mem_size-1)):
+                nextnonterminal = 1.0 - dones[t + 1]
+                nextvalues = values[t + 1]
+                delta = rewards[t] + gamma * nextvalues * nextnonterminal - values[t]
                 advantages[t] = lastgaelam = delta + gamma * gae_lambda * nextnonterminal * lastgaelam
-            returns = advantages + self.values
+            returns = advantages + values
 
 
         # flatten the batch
-        b_obs = self.obs.reshape((-1,self.obs_size))
-        b_logprobs = self.logprobs.reshape(-1)
-        b_actions = self.actions.reshape((-1,self.act_size))
+        b_obs = obs.reshape((-1,self.obs_size))
+        b_logprobs = logprobs.reshape(-1)
+        b_actions = actions.reshape((-1,self.act_size))
         b_advantages = advantages.reshape(-1)
         b_returns = returns.reshape(-1)
-        b_values = self.values.reshape(-1)
+        b_values = values.reshape(-1)
 
         # Optimizing the policy and value network
-        batch_size = self.mem_size * self.num_envs
+        batch_size = self.mem_size * self.num_envs - 1
         b_inds = np.arange(batch_size)
         for epoch in range(update_epochs):
             np.random.shuffle(b_inds)
             for start in range(0, batch_size, minibatch_size):
-                end = start + minibatch_size
+                end = min(start + minibatch_size, batch_size)
                 mb_inds = b_inds[start:end]
 
                 _, newlogprob, entropy, newvalue = self.get_action_and_value(b_obs[mb_inds], b_actions[mb_inds])

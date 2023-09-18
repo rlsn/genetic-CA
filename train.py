@@ -38,7 +38,7 @@ def train_single(run_name, envs, agent):
             lrnow = frac * agent.init_learning_rate
             agent.lr = lrnow
 
-        for step in range(0, num_steps):
+        for step in range(0, num_steps//2):
 
             global_step += 1 * num_envs
 
@@ -63,7 +63,7 @@ def train_single(run_name, envs, agent):
                 writer.add_scalar("charts/episodic_return", info["episode"]["r"], global_step)
                 writer.add_scalar("charts/episodic_length", info["episode"]["l"], global_step)
 
-        agent.update(next_obs, next_done)
+        agent.update(5)
         print(f"{update} updates done")
 
 if __name__=="__main__":
