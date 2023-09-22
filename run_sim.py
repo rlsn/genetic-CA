@@ -19,12 +19,21 @@ print("finished initialization")
 def select(world: GridWorldSimulator):
     delc = []
     for c in world.creatures.values():
-        if c.loc[0]<64:
-            delc.append(c)
+        if c.loc[0]<32 and c.loc[1]<32:
+            continue
+        elif c.loc[0]>96 and c.loc[1]>96:
+            continue
+        elif c.loc[0]>112 and c.loc[1]<16:
+            continue
+        elif c.loc[0]<16 and c.loc[1]>112:
+            continue
+        delc.append(c)
     for c in delc:
         world.remove_creature(c)
 
 def repopulate(world: GridWorldSimulator):
+    if len(world.creatures)<1:
+        raise Exception("the population died out")
     genomes = []
     parents = np.random.choice(list(world.creatures.values()),int(population*(1-new_ratio)),replace=True)
     for c in parents:

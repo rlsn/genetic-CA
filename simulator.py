@@ -11,6 +11,13 @@ class GridWorldSimulator():
         self.wrap = wrap
         self.clear_world()
                 
+    def get_creature_at(self, loc):
+        cid = self.map[loc[0],loc[1]]
+        if cid>0:
+            return self.creatures[cid]
+        else:
+            return None
+    
     def get_cid(self, c):
         return self.map[c.loc[0],c.loc[1]]
             
@@ -74,9 +81,19 @@ class GridWorldSimulator():
         
     def step(self):
         for cid,c in self.creatures.items():
-            inputs = [methodcaller(fn, c, self)(Intepreter) for fn in Intepreter.InputNodes]
+            inputs = []
+            for i,fn in enumerate(Intepreter.InputNodes):
+                if c.reflex.enabled_inputs[i]:
+                    inputs.append(methodcaller(fn, c, self)(Intepreter))
+                else:
+                    inputs.append(0)
+
             outputs = Intepreter.aggregate(c.step(inputs))
-            enabled_actions = [(Intepreter.OutputNodes[i],outputs[i]) for i in range(len(Intepreter.OutputNodes)) if c.reflex.output_enabled[i]]
+            enabled_actions = []
+            for i,fn in enumerate(Intepreter.OutputNodes):
+                if c.reflex.enabled_outputs[i]:
+                    enabled_actions.append((fn, outputs[i]))
+
             np.random.shuffle(enabled_actions)
             for action, value in enabled_actions:
                 methodcaller(action, c, self, value)(Intepreter)

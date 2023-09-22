@@ -5,7 +5,8 @@ class Reflex():
     def __init__(self, genome):
         self.ninternal = 4
             
-        self.output_enabled = np.zeros(len(Intepreter.OutputNodes),dtype=bool)
+        self.enabled_inputs = np.zeros(len(Intepreter.InputNodes),dtype=bool)
+        self.enabled_outputs = np.zeros(len(Intepreter.OutputNodes),dtype=bool)
         self.connections = self.get_connections(genome)
 
     def get_connections(self, genome):
@@ -22,18 +23,20 @@ class Reflex():
                 # from input to output
                 in_node = in_id % len(Intepreter.InputNodes)
                 out_node = out_id % len(Intepreter.OutputNodes)
-                self.output_enabled[out_node]=True
+                self.enabled_inputs[in_node]=True
+                self.enabled_outputs[out_node]=True
                 connections["io"].append((in_node, out_node, weight))
             elif in_type and not out_type:
                 # from input to internal
                 in_node = in_id % len(Intepreter.InputNodes)
                 out_node = out_id % self.ninternal
+                self.enabled_inputs[in_node]=True
                 connections["is"].append((in_node, out_node, weight))
             elif not in_type and out_type:
                 # from internal to output
                 in_node = in_id % self.ninternal
                 out_node = out_id % len(Intepreter.OutputNodes)
-                self.output_enabled[out_node]=True
+                self.enabled_outputs[out_node]=True
                 connections["so"].append((in_node, out_node, weight))
             else:
                 # from internal to internal
