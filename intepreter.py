@@ -6,10 +6,11 @@ agpy = np.array([0, 0.5, 1, 0.5, 0, -0.5, -1, -0.5])
 
 trace_ratio = 0.5
 overrest_return = 0.75
+minimum_rp_to_repr = 0.8
 
-movement_cpm = 1
-rotate_cpm = 0.2
-attack_cpm = 2
+movement_cpm = 0.3
+rotate_cpm = 0.1
+attack_cpm = 1
 
 def sigmoid(x):
     return 1/(1 + np.exp(-x))
@@ -24,6 +25,7 @@ class Intepreter():
         "RsFw", # resource forward
         "RsLF", # resource left forward
         "RsRF", # resource right forward
+        "RsGd", # resource gradient forward
 
         "Rnd", # random input
         "Cnst", # Constant 
@@ -44,6 +46,8 @@ class Intepreter():
     OutputNodes = [
         "MvFw", # move forward
         "MvBw", # move backward
+        "MvRn", # move randomly
+
         "RtLF", # rotate left forward
         "RtRF", # rotate right forward
 
@@ -52,7 +56,6 @@ class Intepreter():
         # "RtPy", # rotate towards +y
         # "RtNy", # rotate towards -y
 
-        "MvRn", # move randomly
         # "MvPx", # move towards +x
         # "MvNx", # move towards -x
         # "MvPy", # move towards +y
@@ -83,13 +86,14 @@ class Intepreter():
         return creature.age/creature.life_expectency
     @staticmethod
     def Hp(creature, world):
-        return creature.hp/creature.self.max_health
+        return creature.hp/creature.max_health
     @staticmethod
     def Rp(creature, world):
-        return creature.rp/creature.self.max_resource
+        return creature.rp/creature.max_resource
     @staticmethod
     def NNgh(creature, world):
         locs = creature.loc + orientation
+        locs%=world.size
         return sum(world.map[locs[:,0],locs[:,1]]>0)/8    
     @staticmethod
     def Lx(creature, world):
@@ -136,45 +140,62 @@ class Intepreter():
     @staticmethod
     def RsFw(creature, world):
         loc = creature.loc + orientation[creature.r]
+        loc%=world.size
         return world.res[loc[0],loc[1]]/creature.max_resource
     @staticmethod
     def RsLF(creature, world):
         loc = creature.loc + orientation[(creature.r-1)%8]
+        loc%=world.size
         return world.res[loc[0],loc[1]]/creature.max_resource
     @staticmethod
     def RsRF(creature, world):
         loc = creature.loc + orientation[(creature.r+1)%8]
+        loc%=world.size
         return world.res[loc[0],loc[1]]/creature.max_resource
+    @staticmethod
+    def RsGd(creature, world):
+        loc1 = (creature.loc + orientation[creature.r])%world.size
+        loc2 = (loc1 + orientation[creature.r])%world.size
+        return (world.res[loc2[0],loc2[1]]-world.res[loc1[0],loc1[1]])/creature.max_resource
 
     # outputs 
     @staticmethod
     def Repr(creature, world, v):
-        if np.random.rand()>v:
+        if np.random.rand()>v or not world.allow_repr:
+            return
+        if creature.rp<minimum_rp_to_repr*creature.max_resource:
             return
 
-        loc = creature.loc + np.random.randint(creature.spawn_pos,size=2)%world.size
+        loc = (creature.loc + np.random.randint(creature.spawn_range,size=2))%world.size
         if world.get_creature_at(loc) is None:
             r = creature.repl_resource * creature.rp
             creature.rp -= r
             c = creature.reproduce()
             c.loc = loc
             c.r = np.random.randint(8)
+            c.rp = r
+            c.generation = creature.generation + 1
             world.add_creature(c)
+
+
+    @staticmethod
+    def gather(creature, world, v):
+        x,y = creature.loc
+        creature.rp += world.res[x,y]
+        if creature.rp>creature.max_resource:
+            world.res[x,y] = creature.rp-creature.max_resource
+            creature.rp=creature.max_resource
 
     @staticmethod
     def Rest(creature, world, v):
-        recv = creature.rp * v
+        recv = max(creature.rp, creature.rp * v)
         creature.rp -= recv
         creature.hp += recv
         if creature.hp>creature.max_health:
             creature.rp+=(creature.hp-creature.max_health)*overrest_return
             creature.hp=creature.max_health
 
-        x,y = creature.loc
-        creature.rp += world.res[x,y]
-        if creature.rp>creature.max_resource:
-            world.res[x,y] = creature.rp-creature.max_resource
-            creature.rp=creature.max_resource
+        Intepreter.gather(creature, world, 0)
 
     @staticmethod
     def MvFw(creature, world, v):
@@ -183,10 +204,11 @@ class Intepreter():
         loc = creature.loc + orientation[creature.r]
         if not Intepreter.block(loc, world):
             loc = loc%world.size
-            r = creature.mass * movement_cpm
+            r = max(creature.rp, creature.mass * movement_cpm)
             world.res[creature.loc[0],creature.loc[1]] += r * trace_ratio
             creature.rp -= r
             world.move_creature(creature, loc)
+            Intepreter.gather(creature, world, 0)
     @staticmethod
     def MvBw(creature, world, v):
         if np.random.rand()>v:
@@ -194,11 +216,11 @@ class Intepreter():
         loc = creature.loc - orientation[creature.r]
         if not Intepreter.block(loc, world):
             loc = loc%world.size
-            r = creature.mass * movement_cpm
+            r = max(creature.rp, creature.mass * movement_cpm)
             world.res[creature.loc[0],creature.loc[1]] += r * trace_ratio
             creature.rp -= r
             world.move_creature(creature, loc)
-
+            Intepreter.gather(creature, world, 0)
     @staticmethod
     def MvRn(creature, world, v):
         if np.random.rand()>v:
@@ -206,11 +228,11 @@ class Intepreter():
         loc = creature.loc + orientation[np.random.randint(len(orientation))]
         if not Intepreter.block(loc, world):
             loc = loc%world.size
-            r = creature.mass * movement_cpm
+            r = max(creature.rp, creature.mass * movement_cpm)
             world.res[creature.loc[0],creature.loc[1]] += r * trace_ratio
             creature.rp -= r
             world.move_creature(creature, loc)
-
+            Intepreter.gather(creature, world, 0)
     @staticmethod
     def RtLF(creature, world, v):
         if np.random.rand()>v:
@@ -284,19 +306,29 @@ class Intepreter():
     @staticmethod
     def ESFw(creature, world, v):
         loc = creature.loc + orientation[creature.r]
-        world.res[loc[0],loc[1]]+= v * creature.mass
+        loc%=world.size
+        r = max(creature.rp, v * creature.mass)
+        creature.rp -= r
+        world.res[loc[0],loc[1]]+= r
     @staticmethod
     def ESBw(creature, world, v):
         loc = creature.loc + orientation[(creature.r+4)%8]
-        world.res[loc[0],loc[1]]+= v * creature.mass
+        loc%=world.size
+        r = max(creature.rp, v * creature.mass)
+        creature.rp -= r
+        world.res[loc[0],loc[1]]+= r
     @staticmethod
     def ESAr(creature, world, v):
-        loc=(creature.loc+orientation)%8
-        world.res[loc[:,0],loc[:,1]]+= v * creature.mass/8
+        loc=creature.loc+orientation
+        loc%=world.size
+        r = max(creature.rp, v * creature.mass/8)
+        creature.rp -= r
+        world.res[loc[:,0],loc[:,1]]+= r
     @staticmethod
     def AtkFw(creature, world, v):
         loc = creature.loc + orientation[creature.r]
-        atk = creature.mass * creature.attack * v
+        loc%=world.size
+        atk = max(creature.rp, creature.mass * creature.attack * v)
         creature.rp -= atk
         victim = world.get_creature_at(loc)
         if victim is not None:

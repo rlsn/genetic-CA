@@ -3,6 +3,7 @@ from intepreter import Intepreter
 
 mutation_table = np.array([0x1<<n for n in range(32)])
 
+base_cpm = 0.08
 genome_mass = 0.1
 
 class Reflex():
@@ -104,11 +105,14 @@ class Creature():
         # traits (constant during lifetime)
         self.solve_traits(genome[0])
         self.reflex = Reflex(genome[1:], self.ninternal, self.nmem)
+        self.mutation_rate=0.002
+        self.shift_rate=0.001
+
 
         # states (variable during lifetime)
         self.age = 0
-        self.rp = self.max_resource
-        self.hp = self.max_health
+        self.rp = max(self.max_resource*0.2, 20)
+        self.hp = max(self.max_health*0.2, 5)
 
         self.loc = 0 # coordinate x,y
         self.r = 0 # orientation 0-7, 0 towards north, increment clockwise
@@ -117,7 +121,7 @@ class Creature():
         self.generation = 0
         self.recent_input_values = []
         self.recent_output_values = []
-
+        self.n_children = 0
     def solve_traits(self, gene):
         # 32 bits:
         # 8: [1?] [3 life_expectency(log)] [2 ninternal(log)] [2 nmem(log)] 
@@ -136,18 +140,19 @@ class Creature():
 
         self.osc1_period = 2**(gene &0xe0>>5)
         self.osc2_period = 2**(gene &0x1c>>2)
-        self.spawn_pos = 2**(gene &0x3)
+        self.spawn_range = 2**(gene &0x3)
                 
         self.mass = np.log2(self.attack + self.defense + self.max_health + self.max_resource) + len(self.genome) * genome_mass
 
-    def reproduce(self, mutation_rate=0.002, shift_rate=0.001):
+    def reproduce(self):
+        self.n_children+=1
         repl = []
         for g in self.genome:
             # point mutation
-            repl.append(g^sum(mutation_table[np.random.rand(32)<0.5]))
+            repl.append(g^sum(mutation_table[np.random.rand(32)<self.mutation_rate]))
         repl = np.array(repl)
 
-        if np.random.rand()<shift_rate:
+        if np.random.rand()<self.shift_rate:
             if np.random.rand()<0.5:
                 # insertion
                 np.insert(repl,
@@ -159,7 +164,7 @@ class Creature():
                     np.delete(repl,np.random.randint(len(repl)))
         return Creature(repl)
     
-    def step(self, inputs, base_cpm = 0.02):
+    def step(self, inputs):
         self.rp -= base_cpm * self.mass
         self.age+=1
 

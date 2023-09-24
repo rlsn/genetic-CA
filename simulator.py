@@ -3,22 +3,30 @@ from scipy.signal import convolve2d
 from creature import Creature
 from intepreter import Intepreter
 from operator import methodcaller
+from functools import partial
 import pickle
 
 class GridWorldSimulator():
     
-    def __init__(self, size=128, wrap=False, diffusion=0.98):
+    def __init__(self, size=128, wrap=False, diffusion_map=None):
         self.size = size
         self.wrap = wrap
         self.step_cnt = 0
 
-        self.diffusion = diffusion
-        self.diffusion_map = np.ones((3,3))*(1-diffusion)/8
-        self.diffusion_map[1,1]=diffusion
+        if diffusion_map is None:
+            diffusion_map = np.one(1)
+        self.diffusion_map = diffusion_map
 
+        self.step_fn = []
+        self.new_creature_fn = []
+
+        self.allow_repr = True
 
         self.clear_world()
                 
+    def __len__(self):
+        return len(self.creatures)
+
     def get_creature_at(self, loc):
         cid = self.map[loc[0],loc[1]]
         if cid>0:
@@ -44,6 +52,8 @@ class GridWorldSimulator():
         self.new_id+=1
         self.creatures[self.new_id] = c
         self.map[c.loc[0],c.loc[1]]=self.new_id
+        for fn in self.new_creature_fn:
+            fn(self, c)
     
     def remove_creature(self,c):
         if type(c) != Creature:
@@ -53,7 +63,7 @@ class GridWorldSimulator():
             cid = self.map[c.loc[0],c.loc[1]]
         
         self.map[c.loc[0],c.loc[1]] = 0
-        self.res[c.loc[0],c.loc[1]] += min(c.rp,0)+c.max_resource*0.2
+        self.res[c.loc[0],c.loc[1]] += max(c.rp,0)
         del self.creatures[cid]
     
     def clear_world(self):
@@ -97,10 +107,11 @@ class GridWorldSimulator():
         self.step_cnt+=1
 
         # diffuse resource
-        self.res=convolve2d(self.res, self.diffusion_map, boundary='wrap', mode='full')
+        self.res=convolve2d(self.res, self.diffusion_map, boundary='wrap', mode='same')
 
         # step creatures
-        for cid,c in self.creatures.items():
+        tmp = [(cid,c) for cid,c in self.creatures.items()]
+        for cid,c in tmp:
 
             # actions
             inputs = []
@@ -113,7 +124,10 @@ class GridWorldSimulator():
             for action, value in enabled_actions:
                 methodcaller(action, c, self, value)(Intepreter)
 
-            
+        # other step functions
+        for fn in self.step_fn:
+            fn(self)
+
     def save(self, filename):
         with open(filename,'wb') as wf:
             pickle.dump(self, wf)
