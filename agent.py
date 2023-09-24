@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 from torch.distributions.normal import Normal
+from torch.distributions.categorical import Categorical
 import torch.optim as optim
 
 def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
@@ -20,7 +21,7 @@ class Agent(nn.Module):
             nn.Tanh(),
             layer_init(nn.Linear(hidden_size, 1), std=1.0),
         )
-        self.actor_mean = nn.Sequential(
+        self.actor = nn.Sequential(
             layer_init(nn.Linear(obs_size, hidden_size)),
             nn.Tanh(),
             layer_init(nn.Linear(hidden_size, hidden_size)),
@@ -41,7 +42,8 @@ class Agent(nn.Module):
         self.current_buffer_pos = -1
 
         self.register_buffer("obs", torch.zeros((mem_size, num_envs, obs_size)))
-        self.register_buffer("actions", torch.zeros((mem_size, num_envs, act_size)))
+        # self.register_buffer("actions", torch.zeros((mem_size, num_envs, act_size)))
+        self.register_buffer("actions", torch.zeros((mem_size, num_envs,)))
         self.register_buffer("logprobs", torch.zeros((mem_size, num_envs)))
         self.register_buffer("rewards", torch.zeros((mem_size, num_envs)))
         self.register_buffer("dones", torch.zeros((mem_size, num_envs)))
@@ -67,21 +69,21 @@ class Agent(nn.Module):
     def get_value(self, x):
         return self.critic(x)
 
-    # def get_action_and_value(self, x, action=None):
-    #     logits = self.actor(x)
-    #     probs = Categorical(logits=logits)
-    #     if action is None:
-    #         action = probs.sample()
-    #     return action, probs.log_prob(action), probs.entropy(), self.critic(x)
-
     def get_action_and_value(self, x, action=None):
-        action_mean = self.actor_mean(x)
-        action_logstd = self.actor_logstd.expand_as(action_mean)
-        action_std = torch.exp(action_logstd)
-        probs = Normal(action_mean, action_std)
+        logits = self.actor(x)
+        probs = Categorical(logits=logits)
         if action is None:
             action = probs.sample()
-        return action, probs.log_prob(action).sum(1), probs.entropy().sum(1), self.critic(x)
+        return action, probs.log_prob(action), probs.entropy(), self.critic(x)
+
+    # def get_action_and_value(self, x, action=None):
+    #     action_mean = self.actor(x)
+    #     action_logstd = self.actor_logstd.expand_as(action_mean)
+    #     action_std = torch.exp(action_logstd)
+    #     probs = Normal(action_mean, action_std)
+    #     if action is None:
+    #         action = probs.sample()
+    #     return action, probs.log_prob(action).sum(1), probs.entropy().sum(1), self.critic(x)
 
     # def save_checkpoint(self, run_name, model_name, steps):
     #     torch.save(self.state_dict(), f"runs/{run_name}/checkpoints/{model_name}_{steps}.pt")
@@ -135,7 +137,8 @@ class Agent(nn.Module):
         # flatten the batch
         b_obs = obs.reshape((-1,self.obs_size))
         b_logprobs = logprobs.reshape(-1)
-        b_actions = actions.reshape((-1,self.act_size))
+        # b_actions = actions.reshape((-1,self.act_size))
+        b_actions = actions.reshape((-1,))
         b_advantages = advantages.reshape(-1)
         b_returns = returns.reshape(-1)
         b_values = values.reshape(-1)
@@ -149,7 +152,7 @@ class Agent(nn.Module):
                 end = min(start + minibatch_size, batch_size)
                 mb_inds = b_inds[start:end]
 
-                _, newlogprob, entropy, newvalue = self.get_action_and_value(b_obs[mb_inds], b_actions[mb_inds])
+                _, newlogprob, entropy, newvalue = self.get_action_and_value(b_obs[mb_inds], b_actions.long()[mb_inds])
                 logratio = newlogprob - b_logprobs[mb_inds]
                 ratio = logratio.exp()
 

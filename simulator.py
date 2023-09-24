@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.signal import convolve2d
 from creature import Creature
 from intepreter import Intepreter
 from operator import methodcaller
@@ -6,9 +7,16 @@ import pickle
 
 class GridWorldSimulator():
     
-    def __init__(self, size=128, wrap=False):
+    def __init__(self, size=128, wrap=False, diffusion=0.98):
         self.size = size
         self.wrap = wrap
+        self.step_cnt = 0
+
+        self.diffusion = diffusion
+        self.diffusion_map = np.ones((3,3))*(1-diffusion)/8
+        self.diffusion_map[1,1]=diffusion
+
+
         self.clear_world()
                 
     def get_creature_at(self, loc):
@@ -32,6 +40,7 @@ class GridWorldSimulator():
         c.loc = np.array(loc)
         
     def add_creature(self,c):
+        assert self.map[c.loc[0],c.loc[1]]==0, "cannot add, place is occupied"
         self.new_id+=1
         self.creatures[self.new_id] = c
         self.map[c.loc[0],c.loc[1]]=self.new_id
@@ -44,12 +53,25 @@ class GridWorldSimulator():
             cid = self.map[c.loc[0],c.loc[1]]
         
         self.map[c.loc[0],c.loc[1]] = 0
+        self.res[c.loc[0],c.loc[1]] += min(c.rp,0)+c.max_resource*0.2
         del self.creatures[cid]
     
     def clear_world(self):
         self.new_id = 0
         self.map = np.zeros((self.size,self.size),dtype=int)
+        self.res = np.zeros((self.size,self.size),dtype=float)
         self.creatures = {}
+    
+    def init_loc(self,c):
+        x,y = np.random.randint(self.size,size=2)
+        n_try = 0
+        while self.map[x,y]>0:
+            if n_try>10:
+                raise Exception("hard to find an empty space, world is too crowded")
+            x,y = np.random.randint(self.size,size=2)
+        c.loc = np.array([x,y])
+        c.r = np.random.randint(8)
+        return c
     
     def populate_density(self, density=0.1, genome_size = 8):
         positions = np.logical_and(np.random.rand(self.size,self.size)<density, self.map<1)
@@ -66,39 +88,32 @@ class GridWorldSimulator():
         if genomes is None:
             genomes = np.random.randint(2**32,size=(n_creatures,genome_size),dtype=np.uint32)
 
-        rotations = np.random.randint(8, size=len(genomes))
         for i,c in enumerate(range(len(genomes))):
-            x,y = np.random.randint(self.size,size=2)
-            n_try = 0
             c = Creature(genomes[i])
-            c.r=rotations[i]
-            while self.map[x,y]>0:
-                if n_try>10:
-                    raise Exception("failed to populate, world is too crowded")
-                x,y = np.random.randint(self.size,size=2)
-            c.loc = np.array([x,y])
+            self.init_loc(c)
             self.add_creature(c)
         
     def step(self):
+        self.step_cnt+=1
+
+        # diffuse resource
+        self.res=convolve2d(self.res, self.diffusion_map, boundary='wrap', mode='full')
+
+        # step creatures
         for cid,c in self.creatures.items():
+
+            # actions
             inputs = []
-            for i,fn in enumerate(Intepreter.InputNodes):
-                if c.reflex.enabled_inputs[i]:
-                    inputs.append(methodcaller(fn, c, self)(Intepreter))
-                else:
-                    inputs.append(0)
+            for fn in c.reflex.enabled_inputs:
+                inputs.append(methodcaller(fn, c, self)(Intepreter))
 
             outputs = Intepreter.aggregate(c.step(inputs))
-            enabled_actions = []
-            for i,fn in enumerate(Intepreter.OutputNodes):
-                if c.reflex.enabled_outputs[i]:
-                    enabled_actions.append((fn, outputs[i]))
-
+            enabled_actions = [(fn,v) for fn,v in zip(c.reflex.enabled_outputs, outputs)]
             np.random.shuffle(enabled_actions)
             for action, value in enabled_actions:
                 methodcaller(action, c, self, value)(Intepreter)
-            
 
+            
     def save(self, filename):
         with open(filename,'wb') as wf:
             pickle.dump(self, wf)

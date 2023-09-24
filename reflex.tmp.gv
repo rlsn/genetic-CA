@@ -1,0 +1,29 @@
+digraph "reflex.tmp" {
+	subgraph cluster_0 {
+		node [color=lightblue2 style=filled]
+		color=lightblue2
+		BlLF
+		Age
+		Cnst
+		Lx
+		Ly
+	}
+	subgraph cluster_1 {
+		node [color=lightgoldenrod1 style=filled]
+		color=lightgoldenrod1
+		RtNx
+		MvNy
+		MvPx
+		MvNx
+		RtRF
+		MvPy
+	}
+	BlLF -> RtNx [label=-3.8 color=lightpink penwidth=3.7978515625]
+	Age -> MvNy [label=-1.98 color=lightpink penwidth=1.9775390625]
+	Cnst -> MvPx [label=1.63 color=lightgreen penwidth=1.631103515625]
+	Lx -> MvPx [label=-3.25 color=lightpink penwidth=3.2528076171875]
+	Cnst -> RtRF [label=-0.14 color=lightpink penwidth=0.8]
+	Ly -> MvNy [label=2.64 color=lightgreen penwidth=2.6358642578125]
+	i0 -> MvNx [label=-1.08 color=lightpink penwidth=1.0780029296875]
+	i0 -> MvPy [label=3.8 color=lightgreen penwidth=3.79736328125]
+}

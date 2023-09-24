@@ -76,6 +76,6 @@ if __name__=="__main__":
             [make_env("BipedalWalker-v3", 0.99) for i in range(num_envs)]
         )
 
-    run_name = f"single_{int(time.time())}"
+    run_name = f"BipedalWalker_{int(time.time())}"
     agent = Agent(envs.single_observation_space.shape[0],envs.single_action_space.shape[0],64).to(device)
     train_single(run_name, envs, agent)
