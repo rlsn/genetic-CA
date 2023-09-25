@@ -5,9 +5,10 @@ mutation_table = np.array([0x1<<n for n in range(32)])
 
 base_cpm = 0.008
 genome_mass = 0.1
+life_mass = 0.2
 
 mutation_rate=0.005
-shift_rate=0.005
+shift_rate=0.01
 
 
 class Reflex():
@@ -186,7 +187,7 @@ class Creature():
         self.osc2_period = 2**((gene &0x1c)>>2)
         self.spawn_range = 2**(gene &0x3)
                 
-        self.mass = np.log2(self.attack * self.defense * self.max_health * self.max_resource) + len(self.genome) * genome_mass
+        self.mass = np.log2(self.attack * self.defense * self.max_health * self.max_resource * self.life_expectency) + len(self.genome) * genome_mass
 
     def reproduce(self):
         self.n_children+=1
@@ -199,13 +200,13 @@ class Creature():
         if np.random.rand()<self.shift_rate:
             if np.random.rand()<0.5:
                 # insertion
-                np.insert(repl,
+                repl=np.insert(repl,
                           np.random.randint(len(repl)+1),
                           np.random.randint(2**32,dtype=np.uint32))
             else:
                 if len(repl)>1:
                     # delete
-                    np.delete(repl,np.random.randint(len(repl)))
+                    repl=np.delete(repl,np.random.randint(len(repl)))
         return Creature(repl)
     
     def step(self, inputs):

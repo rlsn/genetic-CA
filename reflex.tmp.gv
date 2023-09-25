@@ -3,34 +3,19 @@ digraph "reflex.tmp" {
 	subgraph cluster_0 {
 		node [color=lightblue2 style=filled]
 		color=lightblue2
-		RsGd
-		Rnd
+		RsFw
 		Hp
-		NNgh
-		Osc1c
 	}
 	subgraph cluster_1 {
 		node [color=lightgoldenrod1 style=filled]
 		color=lightgoldenrod1
 		MvFw
-		RtRF
-		Repr
-		Gath
 		MvBw
+		Gath
+		Repr
 	}
-	RsGd -> i0 [label=2.85 color=lightgreen penwidth=2.8502197265625]
-	Rnd -> i2 [label=-2.47 color=lightpink penwidth=2.473876953125]
-	Hp -> i2 [label=0.49 color=lightgreen penwidth=0.8]
-	NNgh -> i1 [label=1.39 color=lightgreen penwidth=1.3896484375]
-	Hp -> i2 [label=-1.74 color=lightpink penwidth=1.7384033203125]
-	Osc1c -> i0 [label=0.83 color=lightgreen penwidth=0.8333740234375]
-	i2 -> i0 [label=2.77 color=lightgreen penwidth=2.7728271484375]
-	i2 -> MvFw [label=1.52 color=lightgreen penwidth=1.5206298828125]
-	i2 -> RtRF [label=-2.61 color=lightpink penwidth=2.6051025390625]
-	i2 -> Repr [label=-3.81 color=lightpink penwidth=3.8114013671875]
-	i0 -> Repr [label=-3.63 color=lightpink penwidth=3.6270751953125]
-	i1 -> MvFw [label=3.5 color=lightgreen penwidth=3.503173828125]
-	i1 -> Gath [label=0.13 color=lightgreen penwidth=0.8]
-	i2 -> MvBw [label=-2.49 color=lightpink penwidth=2.4915771484375]
-	i0 -> MvFw [label=-2.73 color=lightpink penwidth=2.7288818359375]
+	RsFw -> MvFw [label=2.26 color=lightgreen penwidth=2.2628173828125]
+	RsFw -> MvBw [label=-3.5 color=lightpink penwidth=3.5032958984375]
+	Hp -> Gath [label=3.27 color=lightgreen penwidth=3.271728515625]
+	Hp -> Repr [label=1.44 color=lightgreen penwidth=1.4444580078125]
 }

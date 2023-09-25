@@ -6,15 +6,18 @@ from operator import methodcaller
 from functools import partial
 import pickle
 
+
+dx = np.array([[-0.5,0.5]])
+dy = dx.T
+
 class GridWorldSimulator():
     
-    def __init__(self, size=128, wrap=False, diffusion_map=None):
+    def __init__(self, size=128, wrap=False, diffusion=0.05, dissapation=0.98):
         self.size = size
         self.wrap = wrap
 
-        if diffusion_map is None:
-            diffusion_map = np.one(1)
-        self.diffusion_map = diffusion_map
+        self.diffusion = diffusion
+        self.dissapation = dissapation
 
         self.step_fn = []
         self.new_creature_fn = []
@@ -113,7 +116,12 @@ class GridWorldSimulator():
         self.step_cnt+=1
         self.new_added_cnt=0
         # diffuse resource
-        self.res=convolve2d(self.res, self.diffusion_map, boundary='wrap', mode='same')
+        dmdx = convolve2d(self.res, dx, boundary='wrap', mode='same')
+        dmdy = convolve2d(self.res, dy, boundary='wrap', mode='same')
+        d2m = np.roll(convolve2d(dmdx, dx, boundary='wrap', mode='same'),-1,axis=1)
+        d2m += np.roll(convolve2d(dmdy, dy, boundary='wrap', mode='same'),-1,axis=0)
+        self.res += self.diffusion*d2m
+        self.res*=self.dissapation
 
         # step creatures
         tmp = [(cid,c) for cid,c in self.creatures.items()]

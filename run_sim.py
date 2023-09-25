@@ -7,8 +7,8 @@ from functools import partial
 from utils import MovingSupply
 wrap=True
 world_size = 96
-diffusion = 0.995
-dissipation = 0.005
+diffusion = 0.05
+dissapation = 0.995
 
 init_population = 800
 init_genome_size = [4,8,12,16]
@@ -20,15 +20,16 @@ boost_pop = 20
 pop_limit = 800
 
 ms = [
-    MovingSupply(world_size,[(2000,0.4,0.3),(160,0,0.8)], world_size//16, 4, 2, 8),
-    MovingSupply(world_size,[(500,-0.5,1.5)], world_size//8, 3, 2, 8),
-    MovingSupply(world_size,[(700,-0.6,1.8)], world_size//8, 3, 2, 8),
+    MovingSupply(world_size,[(2000,0.6,0.3),(160,0,0.8)], 10, 4, 2, 8),
+    MovingSupply(world_size,[(500,-0.5,1.5)], 10, 3, 2, 8),
+    MovingSupply(world_size,[(700,-0.6,1.8)], 10, 2, 1, 16),
+    MovingSupply(world_size,[(50,0.5,0.5)], 8, 4, 5, 4),
+    MovingSupply(world_size,[(1200,0.2,0.4)], 10, 5, 1, 4),
+    MovingSupply(world_size,[(80,0.7,0.4)], 8, 4, 3, 4),
+    MovingSupply(world_size,[(60,0.8,0.8)], 4, 20, 1, 4),
 ]
 
 save_name = "world.pkl"
-
-diffusion_map = np.ones((3,3))*(1-diffusion)/8
-diffusion_map[1,1]=diffusion-dissipation
 
 def spawn(world: GridWorldSimulator):
     if np.random.rand()<(ideal_pop-len(world))/ideal_pop:
@@ -85,7 +86,7 @@ def save(world):
 
 def init_world(args):
     if not args.continue_sim:
-        world = GridWorldSimulator(size=world_size,wrap=wrap,diffusion_map=diffusion_map)
+        world = GridWorldSimulator(size=world_size,wrap=wrap,diffusion=diffusion,dissapation=dissapation)
         for gsize in init_genome_size:
             world.populate_number(int(init_population/len(init_genome_size)), genome_size = gsize)
         print("finished initialization")
