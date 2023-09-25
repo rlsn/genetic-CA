@@ -3,7 +3,7 @@ from intepreter import Intepreter
 
 mutation_table = np.array([0x1<<n for n in range(32)])
 
-base_cpm = 0.08
+base_cpm = 0.005
 genome_mass = 0.1
 
 class Reflex():
@@ -75,6 +75,25 @@ class Reflex():
                 out_pos = out_id % self.ninternal
                 connections["ss"].append((in_pos, out_pos, weight))
         
+        # clean useless connections
+        i_reachable = set()
+        o_reachable = set()
+        for conn in connections["is"]:
+            i_reachable.add(conn[1])
+        for conn in connections["so"]:
+            o_reachable.add(conn[0])
+        for conn in connections["ss"]:
+            if conn[0] in i_reachable:
+                i_reachable.add(conn[1])
+            if conn[1] in o_reachable:
+                o_reachable.add(conn[0])
+                
+        valid = i_reachable.intersection(o_reachable)
+
+        connections["is"] = [conn for conn in connections["is"] if conn[1] in valid]
+        connections["ss"] = [conn for conn in connections["ss"] if conn[0] in valid and conn[1] in valid]
+        connections["so"] = [conn for conn in connections["so"] if conn[0] in valid]
+
         return connections
     
     def forward(self, inputs):
@@ -111,8 +130,8 @@ class Creature():
 
         # states (variable during lifetime)
         self.age = 0
-        self.rp = max(self.max_resource*0.2, 20)
-        self.hp = max(self.max_health*0.2, 5)
+        self.rp = self.max_resource*0.8
+        self.hp = self.max_health*0.8
 
         self.loc = 0 # coordinate x,y
         self.r = 0 # orientation 0-7, 0 towards north, increment clockwise
@@ -142,7 +161,7 @@ class Creature():
         self.osc2_period = 2**(gene &0x1c>>2)
         self.spawn_range = 2**(gene &0x3)
                 
-        self.mass = np.log2(self.attack + self.defense + self.max_health + self.max_resource) + len(self.genome) * genome_mass
+        self.mass = np.log2(self.attack * self.defense * self.max_health * self.max_resource) + len(self.genome) * genome_mass
 
     def reproduce(self):
         self.n_children+=1
