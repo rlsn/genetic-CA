@@ -3,8 +3,12 @@ from intepreter import Intepreter
 
 mutation_table = np.array([0x1<<n for n in range(32)])
 
-base_cpm = 0.005
+base_cpm = 0.008
 genome_mass = 0.1
+
+mutation_rate=0.005
+shift_rate=0.005
+
 
 class Reflex():
     def __init__(self, genome, ninternal, nmem):
@@ -88,11 +92,32 @@ class Reflex():
             if conn[1] in o_reachable:
                 o_reachable.add(conn[0])
                 
-        valid = i_reachable.intersection(o_reachable)
+        valid_int = i_reachable.intersection(o_reachable)
 
-        connections["is"] = [conn for conn in connections["is"] if conn[1] in valid]
-        connections["ss"] = [conn for conn in connections["ss"] if conn[0] in valid and conn[1] in valid]
-        connections["so"] = [conn for conn in connections["so"] if conn[0] in valid]
+        connections["is"] = [conn for conn in connections["is"] if conn[1] in valid_int]
+        connections["ss"] = [conn for conn in connections["ss"] if conn[0] in valid_int and conn[1] in valid_int]
+        connections["so"] = [conn for conn in connections["so"] if conn[0] in valid_int]
+
+        # clean useless nodes
+        valid_i = set()
+        valid_o = set()
+
+        for conn in connections["is"]+connections["io"]:
+            valid_i.add(conn[0])
+        for conn in connections["so"]+connections["io"]:
+            valid_o.add(conn[1])
+            
+        valid_i = list(valid_i)
+        valid_o = list(valid_o)
+        self.enabled_inputs = [self.enabled_inputs[i] for i in valid_i]
+        self.enabled_outputs = [self.enabled_outputs[i] for i in valid_o]
+
+        in_posdict = dict([(i,n) for n,i in enumerate(valid_i)])
+        out_posdict = dict([(i,n) for n,i in enumerate(valid_o)])
+
+        connections["io"] = [(in_posdict[conn[0]],out_posdict[conn[1]],conn[2]) for conn in connections["io"]]
+        connections["is"] = [(in_posdict[conn[0]],conn[1],conn[2]) for conn in connections["is"]]
+        connections["so"] = [(conn[0],out_posdict[conn[1]],conn[2]) for conn in connections["so"]]
 
         return connections
     
@@ -118,14 +143,14 @@ class Reflex():
 
 class Creature():
     def __init__(self, genome):
-        
+        self.alive = True
         self.genome = genome
 
         # traits (constant during lifetime)
         self.solve_traits(genome[0])
         self.reflex = Reflex(genome[1:], self.ninternal, self.nmem)
-        self.mutation_rate=0.002
-        self.shift_rate=0.001
+        self.mutation_rate=mutation_rate
+        self.shift_rate=shift_rate
 
 
         # states (variable during lifetime)

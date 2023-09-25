@@ -68,6 +68,7 @@ class GridWorldSimulator():
         
         self.map[c.loc[0],c.loc[1]] = 0
         self.res[c.loc[0],c.loc[1]] += max(c.rp,0)
+        c.alive=False
         del self.creatures[cid]
     
     def clear_world(self):
@@ -117,7 +118,8 @@ class GridWorldSimulator():
         # step creatures
         tmp = [(cid,c) for cid,c in self.creatures.items()]
         for cid,c in tmp:
-
+            if not c.alive:
+                continue
             # actions
             inputs = []
             for fn in c.reflex.enabled_inputs:

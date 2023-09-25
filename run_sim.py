@@ -4,7 +4,7 @@ from creature import Creature
 import argparse
 import numpy as np
 from functools import partial
-
+from utils import MovingSupply
 wrap=True
 world_size = 96
 diffusion = 0.995
@@ -16,13 +16,14 @@ init_genome_size = [4,8,12,16]
 report_intv = 1
 
 ideal_pop = 250
-boost_pop = 50
+boost_pop = 20
 pop_limit = 800
 
-res_period = 200
-avg_res = -10.2
-amp_res = 0.5
-n_locs = 8
+ms = [
+    MovingSupply(world_size,[(2000,0.4,0.3),(160,0,0.8)], world_size//16, 4, 2, 8),
+    MovingSupply(world_size,[(500,-0.5,1.5)], world_size//8, 3, 2, 8),
+    MovingSupply(world_size,[(700,-0.6,1.8)], world_size//8, 3, 2, 8),
+]
 
 save_name = "world.pkl"
 
@@ -31,7 +32,7 @@ diffusion_map[1,1]=diffusion-dissipation
 
 def spawn(world: GridWorldSimulator):
     if np.random.rand()<(ideal_pop-len(world))/ideal_pop:
-        world.populate_number(1, genome_size = np.random.choice(init_genome_size))
+        world.populate_number(int((ideal_pop-len(world))/10)*0+1, genome_size = np.random.choice(init_genome_size))
         # print("added 1 crt")
     if len(world)<boost_pop:
         for gsize in init_genome_size:
@@ -39,13 +40,8 @@ def spawn(world: GridWorldSimulator):
         print("boosted pop")
 
 def supply(world: GridWorldSimulator):
-    low,high = world_size//16*5,world_size//16*11
-    ncells = (high-low)**2
-    locs = np.random.randint(low,high, size=(n_locs,2))
-    sup = ncells*avg_res+ ncells*amp_res*np.sin(world.step_cnt/res_period*np.pi*2)
-    tot = world.res.sum()
-    world.res[locs[:,0],locs[:,1]]+=max(0,sup-tot)/n_locs
-    # print(f"supplied {max(0,sup-tot)} res")
+    for m in ms:
+        m.step(world)
 def select(world: GridWorldSimulator):
     delc = []
     for c in world.creatures.values():

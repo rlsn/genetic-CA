@@ -27,6 +27,8 @@ map_text_loc = (150,960)
 
 reflex_png_loc = (1000,500)
 reflex_png_size = (1000,768)
+
+res_color = (250, 200, 120)
 ###############################################################################
 
 parser = argparse.ArgumentParser(description='simulator gui')
@@ -154,10 +156,10 @@ while running:
 
 
         infos = [
-            f'id = {world.get_cid(highlight)}, age={highlight.age}/{highlight.life_expectency}',
+            f'id = {world.get_cid(highlight)}, age={highlight.age}/{highlight.life_expectency}, {"alive" if highlight.alive else "dead"}',
             f'loc = {(highlight.loc[0],highlight.loc[1])}, rot = {Rotation_NumPad[highlight.r]}',
             f'generation={highlight.generation}, # gene={len(highlight.genome)}, spawn range={highlight.spawn_range}, # children={highlight.n_children}',
-            f'rp={round(highlight.rp,2)}/{highlight.max_resource}, hp={round(highlight.attack,2)}/{highlight.max_health}',
+            f'rp={round(highlight.rp,2)}/{highlight.max_resource}, hp={round(highlight.hp,2)}/{highlight.max_health}',
             f'mass={highlight.mass}, atk={highlight.attack}, def={highlight.defense}',
             f'# internal={highlight.nmem}, {highlight.ninternal}',
 
@@ -184,8 +186,8 @@ while running:
         w = cell_size *2
         for x in range(world.size):
             for y in range(world.size):
-                rgb = max(0,min(255,255-world.res[x,y]/ref_res*255))
-                pg.draw.rect(screen, (rgb,rgb,rgb), 
+                a = max(0,min(1,world.res[x,y]/ref_res))
+                pg.draw.rect(screen, pg.Color(255,255,255).lerp(res_color,a),
                         (map_offset[0]+x*scale-cell_size,map_offset[1]+y*scale-cell_size,w,w))
 
     for c in world.creatures.values():

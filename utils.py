@@ -1,4 +1,5 @@
 from graphviz import Digraph
+import numpy as np
 
 def color_mapping(genome):
     n = [0,0,0]
@@ -48,3 +49,23 @@ def visualize_reflex(reflex, graphname='reflex.tmp'):
     
     return g
 
+class MovingSupply():
+    def __init__(self, world_size, Tma_list, size, move_freq, move_step, n_scatter):
+        self.Tma_list=Tma_list # (peroid, mean, amp)
+        self.size = size
+        self.radius=size//2
+        self.move_freq=move_freq
+        self.move_step=move_step
+        self.n_scatter=n_scatter
+        self.ncells = (self.size)**2
+
+        self.loc = np.random.randint(world_size,size=2)
+
+    def step(self, world):
+        locs = (self.loc+np.random.randint(-self.radius,self.radius, size=(self.n_scatter,2)))%world.size
+        if world.step_cnt%self.move_freq==0:
+            self.loc=(self.loc+np.random.randint(self.move_step, size=2))%world.size
+        v = 0
+        for t,m,a in self.Tma_list:
+            v+=(self.ncells*m+ self.ncells*a*np.sin(world.step_cnt/t*np.pi*2))/t*np.pi
+        world.res[locs[:,0],locs[:,1]]+=max(0,v)

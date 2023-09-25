@@ -169,7 +169,7 @@ class Intepreter():
     # outputs 
     @staticmethod
     def Repr(creature, world, v):
-        if np.random.rand()>v or not world.allow_repr:
+        if np.random.rand()>=v or not world.allow_repr:
             return
         if creature.rp<minimum_rp_to_repr*creature.max_resource:
             return
@@ -341,6 +341,9 @@ class Intepreter():
         victim = world.get_creature_at(loc)
         if victim is not None:
             victim.hp -= max(atk - victim.defense,0)
+            if victim.hp<=0:
+                world.remove_creature(victim)
+                Intepreter.MvFw(creature, world, 1)
 
     # aggregation
     @staticmethod
