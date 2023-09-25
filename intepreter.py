@@ -24,7 +24,10 @@ def sigmoid(x):
 
 class Intepreter():
     InputNodes = [
+        "Rp", # resource
+        "Hp", # health
         "Age", # age [0,1)
+
         "BlFw", # blockage forward
         "BlLF", # blockage left forward
         "BlRF", # blockage right forward
@@ -46,11 +49,10 @@ class Intepreter():
         "Osc1c", # Oscillator 1 cos
         "Osc2s", # Oscillator 2 sin
         "Osc2c", # Oscillator 2 cos
-
-        "Rp", # resource
-        "Hp", # health
     ]
     OutputNodes = [
+        "Repr", # reproduce
+
         "MvFw", # move forward
         "MvBw", # move backward
         "MvRn", # move randomly
@@ -71,8 +73,6 @@ class Intepreter():
         "Rest", # take a rest, recover hp
         "Gath", # gather local resources
         "AtkFw", # attack forward
-
-        "Repr", # reproduce
 
         "ESFw", # emit resource forward
         "ESBw", # emit resource backward

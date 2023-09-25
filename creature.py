@@ -23,9 +23,9 @@ class Reflex():
 
         for gene in genome:
             # 32 bits: [1 in_type] [7 in_id] [1 out_type] [7 out_id] [16 weight]
-            in_type = gene>>24 &0x80 >>7
+            in_type = (gene>>24 &0x80) >>7
             in_id = gene>>24 & 0x7f
-            out_type = gene>>16 &0x80 >>7
+            out_type = (gene>>16 &0x80) >>7
             out_id = gene>>16 &0x7f
             weight = gene &0xffff
             weight = (weight - 2**15)/2**15*4
@@ -147,18 +147,18 @@ class Creature():
         # 16: [3 attack] [3 defense] [3 max_health] [3 max_resource] [4 repl_resource] (all log)
         # 8: [3 Osc1_period (log)] [3 Osc2_period (log)] [2 spawn_range(log)]
 
-        self.life_expectency = 2**((gene>>24 &0x70 >>4)+2)
-        self.ninternal = 2**(gene>>24 &0xc >> 2)
+        self.life_expectency = 2**(((gene>>24 &0x70) >>4)+2)
+        self.ninternal = 2**((gene>>24 &0xc) >> 2)
         self.nmem = 2**(gene>>24 &0x3)
 
-        self.attack = 2**(gene>>8 &0xe000 >> 13)
-        self.defense = 2**(gene>>8 &0x1c00 >> 10)
-        self.max_health = 2**(gene>>8 &0x380 >> 7)
-        self.max_resource = 2**(gene>>8 &0x70 >> 4)
+        self.attack = 2**((gene>>8 &0xe000) >> 13)
+        self.defense = 2**((gene>>8 &0x1c00) >> 10)
+        self.max_health = 2**((gene>>8 &0x380) >> 7)
+        self.max_resource = 2**((gene>>8 &0x70) >> 4)
         self.repl_resource = 0.5**(gene>>8 &0xf)
 
-        self.osc1_period = 2**(gene &0xe0>>5)
-        self.osc2_period = 2**(gene &0x1c>>2)
+        self.osc1_period = 2**((gene &0xe0)>>5)
+        self.osc2_period = 2**((gene &0x1c)>>2)
         self.spawn_range = 2**(gene &0x3)
                 
         self.mass = np.log2(self.attack * self.defense * self.max_health * self.max_resource) + len(self.genome) * genome_mass

@@ -11,7 +11,6 @@ class GridWorldSimulator():
     def __init__(self, size=128, wrap=False, diffusion_map=None):
         self.size = size
         self.wrap = wrap
-        self.step_cnt = 0
 
         if diffusion_map is None:
             diffusion_map = np.one(1)
@@ -21,8 +20,12 @@ class GridWorldSimulator():
         self.new_creature_fn = []
 
         self.allow_repr = True
-
+        
         self.clear_world()
+
+        # statistics
+        self.step_cnt = 0
+        self.new_added_cnt = 0
                 
     def __len__(self):
         return len(self.creatures)
@@ -54,7 +57,8 @@ class GridWorldSimulator():
         self.map[c.loc[0],c.loc[1]]=self.new_id
         for fn in self.new_creature_fn:
             fn(self, c)
-    
+        self.new_added_cnt += 1
+
     def remove_creature(self,c):
         if type(c) != Creature:
             cid = c
@@ -89,6 +93,7 @@ class GridWorldSimulator():
         np.random.shuffle(positions)
         for x,y in positions:
             genome = np.random.randint(2**32,size=genome_size,dtype=np.uint32)
+            # genome[1] = genome[1] & 0x0000ffff | 0x80800000 # make sure it's capable to repl
             c = Creature(genome)
             c.loc = np.array([x,y])
             c.r = np.random.randint(8)
@@ -105,7 +110,7 @@ class GridWorldSimulator():
         
     def step(self):
         self.step_cnt+=1
-
+        self.new_added_cnt=0
         # diffuse resource
         self.res=convolve2d(self.res, self.diffusion_map, boundary='wrap', mode='same')
 

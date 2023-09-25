@@ -16,7 +16,7 @@ init_genome_size = [4,8,12,16]
 report_intv = 1
 
 ideal_pop = 250
-boost_pop = 20
+boost_pop = 50
 pop_limit = 800
 
 res_period = 200
@@ -31,7 +31,7 @@ diffusion_map[1,1]=diffusion-dissipation
 
 def spawn(world: GridWorldSimulator):
     if np.random.rand()<(ideal_pop-len(world))/ideal_pop:
-        world.populate_number(int(ideal_pop/10)+1, genome_size = np.random.choice(init_genome_size))
+        world.populate_number(1, genome_size = np.random.choice(init_genome_size))
         # print("added 1 crt")
     if len(world)<boost_pop:
         for gsize in init_genome_size:
@@ -78,7 +78,7 @@ def report(world, printout = True):
         max_mass = round(max(all_mass),1)
         min_mass = round(min(all_mass),1)
 
-        rep = f"step={world.step_cnt}, pop={len(world)}, rp={rp}, res={res}, total_res={total_res}, mass={mass}, max_mass={max_mass}, min_max={min_mass}"
+        rep = f"step={world.step_cnt}, pop={len(world)}, rp={rp}, res={res}, total_res={total_res}, mass={mass}, max_mass={max_mass}, min_max={min_mass}, new_born={world.new_added_cnt}"
         if printout:
             print(rep)
     return rep
