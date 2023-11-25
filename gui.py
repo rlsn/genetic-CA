@@ -6,6 +6,8 @@ from utils import *
 from run_sim import init_world
 import argparse
 
+
+step_size = 5
 screen_size = (2048, 1280)
 map_offset = (150,100)
 map_size = 768
@@ -209,7 +211,8 @@ while running:
 
     # logic
     if playing:
-        world.step()
+        for i in range(step_size):
+            world.step()
     elif single_step:
         # stats.update({"repr_out":0,"repr_in":0, "rest_in":0, "rest_out":0})
         world.step()
