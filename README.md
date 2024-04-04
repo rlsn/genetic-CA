@@ -1,7 +1,7 @@
 # Genetic-CA
 A customizable genetic cellular automata testbed with pygame GUI. 
 
-<img src = "imgs/demo.png" width ="70%" /> 
+<img src = "imgs/demo.png" width ="95%" /> 
 
 ## Features
 - save/load world states
