@@ -1,2 +1,2 @@
-# marl
+# Genetic-CA
  
