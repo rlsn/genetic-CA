@@ -6,9 +6,9 @@ from utils import *
 from run_sim import init_world
 import argparse
 
+screen_size = [1800, 960]
 
 step_size = 5
-screen_size = (2048, 1280)
 map_offset = (150,100)
 map_size = 768
 margin = 20
@@ -21,14 +21,14 @@ reflex_png = None
 
 play_button_rect = (600,40,120,32)
 showres_button_rect = (200,40,160,32)
-export_button_rect = (1600,60,250,32)
+export_button_rect = (1400,60,250,32)
 
 step_text_loc = (800,40)
 info_text_loc = (1000,60)
 map_text_loc = (150,960)
 
 reflex_png_loc = (1000,500)
-reflex_png_size = (1000,768)
+reflex_png_size = (500,368)
 
 res_color = (250, 200, 120)
 ###############################################################################
@@ -71,7 +71,7 @@ clock = pg.time.Clock()
 running = True
 
 pg.font.init()
-font = pg.font.Font('freesansbold.ttf', 32)
+font = pg.font.Font('freesansbold.ttf', 24)
 
 single_step = False
 playing = False
@@ -91,6 +91,7 @@ def set_highlight(c):
 ###############################################################################
 
 while running:
+
     # poll for events
     # pygame.QUIT event means the user clicked X to close your window
     for event in pg.event.get():
