@@ -1,5 +1,5 @@
 # Genetic-CA
-A customizable genetic cellular automata testbed with pygame GUI. 
+A customizable genetic cellular automata simulator with pygame GUI. 
 
 <img src = "imgs/demo.png" width ="95%" /> 
 
