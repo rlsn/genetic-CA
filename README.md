@@ -5,6 +5,7 @@ A customizable genetic cellular automata simulator with pygame GUI.
 
 ## Features
 - save/load world states
+- play/pause simulation
 - click on cell and view its state, genetic sequence, and phenotype informations
 - display phenotype neural network
 - customizable cell functions and states
